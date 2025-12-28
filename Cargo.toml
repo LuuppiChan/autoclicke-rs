@@ -1,0 +1,12 @@
+[package]
+name = "autoclicker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.53", features = ["derive"] }
+evdev = "0.13.2"
+uinput-rs = { git = "https://github.com/LuuppiChan/uinput-rs.git" }
+tokio = { version = "1.48.0", features = ["full"] }
+chrono = "0.4.42"
+ringbuffer = "0.16.0"
