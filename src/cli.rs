@@ -65,6 +65,11 @@ pub struct Cli {
     #[arg(long, default_value_t = 1.1)]
     pub factor: f64,
 
+    /// Minimum delay allowed when scrolling.
+    /// If input mode is cps this will be the max cps.
+    #[arg(long, default_value_t = 0.0)]
+    pub minimum_delay: f64,
+
     /// How many spammers to spawn when activating the autoclicker.
     /// This is like a multiplier for cps.
     /// I will not take any responsibility for changing this parameter.

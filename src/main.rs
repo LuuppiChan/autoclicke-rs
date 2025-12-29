@@ -33,6 +33,7 @@ fn main() {
         cli.left_click_delay = 1.0 / cli.left_click_delay;
         cli.right_click_delay = 1.0 / cli.right_click_delay;
         cli.fast_click_delay = 1.0 / cli.fast_click_delay;
+        cli.minimum_delay = 1.0 / cli.minimum_delay;
     }
     if cli.debug {
         dbg!(&cli.mode);
@@ -290,6 +291,15 @@ fn main() {
                         stored_delay.store(
                             (delay as f64 * cli.factor) as u64
                                 * event.value().unsigned_abs() as u64,
+                            Ordering::Relaxed,
+                        );
+                    }
+
+                    if Duration::from_nanos(stored_delay.load(Ordering::Relaxed)).as_secs_f64()
+                        < cli.minimum_delay
+                    {
+                        stored_delay.store(
+                            Duration::from_secs_f64(cli.minimum_delay).as_nanos() as u64,
                             Ordering::Relaxed,
                         );
                     }
