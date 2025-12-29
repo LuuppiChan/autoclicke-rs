@@ -270,10 +270,11 @@ fn main() {
                 {
                     let stored_delay = if left_spammer.is_enabled() {
                         &left_click_delay_ns
-                    } else if left_spammer.is_enabled() {
+                    } else if right_spammer.is_enabled() {
                         &right_click_delay_ns
                     } else {
                         // I'm 90% sure this is unreachable
+                        // Yeah except if one manages to turn off a spammer between.
                         unreachable!(
                             "Expected left or right spammer enabled, but neither is enabled."
                         )
@@ -293,6 +294,10 @@ fn main() {
                         );
                     }
                 }
+                // Basically just ignore these events if the scroll_changes_cps is enabled and used
+                2 if cli.scroll_changes_cps
+                    && [8, 11].contains(&event.code())
+                    && (left_spammer.is_enabled() || right_spammer.is_enabled()) => {}
                 _ => virtual_device.emit_silent(event.event_type().0, event.code(), event.value()),
             }
         }
