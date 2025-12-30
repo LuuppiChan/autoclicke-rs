@@ -168,7 +168,7 @@ fn main() {
                                         left_spammer.enable(cli.spammers);
                                     }
                                     Mode::Toggle => {
-                                        if cli.stop_on_click {
+                                        if cli.disable_on_click {
                                             left_spammer.disable();
                                         }
                                     }
@@ -199,7 +199,7 @@ fn main() {
                                         right_spammer.enable(cli.spammers);
                                     }
                                     Mode::Toggle => {
-                                        if cli.stop_on_click {
+                                        if cli.disable_on_click {
                                             right_spammer.disable();
                                         }
                                     }

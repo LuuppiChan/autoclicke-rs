@@ -35,8 +35,8 @@ pub struct Cli {
     pub mode: Mode,
 
     /// On toggle mode if you click, it will stop the autoclicker.
-    #[arg(long)]
-    pub stop_on_click: bool,
+    #[arg(short, long)]
+    pub disable_on_click: bool,
 
     /// Start left click enabled.
     #[arg(long)]
