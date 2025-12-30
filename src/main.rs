@@ -228,7 +228,7 @@ fn main() {
                     // middle
                     274 => {
                         virtual_device.emit_key_code_silent(BTN_MIDDLE, event.value());
-                        if event.value() == 1 {
+                        if event.value() == 1 && left_enabled.load(Ordering::Relaxed) {
                             fast_enabled.fetch_not(Ordering::Relaxed);
                             left_click_delay_ns.store(
                                 Duration::from_secs_f64(if fast_enabled.load(Ordering::Relaxed) {
