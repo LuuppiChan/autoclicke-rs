@@ -75,6 +75,10 @@ pub struct Cli {
     #[arg(long, default_value_t = 0.0)]
     pub minimum_delay: f64,
 
+    /// Interface update delay in milliseconds.
+    #[arg(short, long, default_value_t = 10, value_parser = clap::value_parser!(u64).range(1..=1000))]
+    pub update_delay: u64,
+
     /// How many spammers to spawn when activating the autoclicker.
     /// This is like a multiplier for cps.
     /// I will not take any responsibility for changing this parameter.

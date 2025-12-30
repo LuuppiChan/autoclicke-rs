@@ -53,12 +53,13 @@ pub fn spawn_status_thread(
     left_enabled: Arc<AtomicBool>,
     right_enabled: Arc<AtomicBool>,
     fast_enabled: Arc<AtomicBool>,
+    update_delay: u64,
 ) {
     let cps = Arc::new(AtomicU64::new(0));
     let cps_copy = cps.clone();
     thread::spawn(move || {
-        let mut buckets: AllocRingBuffer<u64> = AllocRingBuffer::new(100);
-        let delay = Duration::from_millis(10);
+        let delay = Duration::from_millis(update_delay);
+        let mut buckets: AllocRingBuffer<u64> = AllocRingBuffer::new((1000 / update_delay) as usize);
         loop {
             sleep(delay);
             let clicks = click_counter.load(Ordering::Relaxed);

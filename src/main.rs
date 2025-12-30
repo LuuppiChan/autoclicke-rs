@@ -136,6 +136,7 @@ fn main() {
         left_enabled.clone(),
         right_enabled.clone(),
         fast_enabled.clone(),
+        cli.update_delay,
     );
 
     device.grab().expect("Error grabbing selected device.");
