@@ -109,6 +109,16 @@ fn main() {
         loop {
             sleep(Duration::from_secs(60 * 60));
         }
+    } else if cli.mode == Mode::Toggle {
+        if cli.enable_fast {
+            left_click_delay_ns.store(to_nanos(cli.fast_click_delay), Ordering::Relaxed);
+        }
+        if cli.enable_left {
+            left_spammer.enable(cli.spammers);
+        }
+        if cli.enable_right {
+            right_spammer.enable(cli.spammers);
+        }
     }
 
     let mut device = evdev::Device::open(
