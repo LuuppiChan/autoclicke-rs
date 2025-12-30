@@ -145,19 +145,18 @@ fn main() {
                         if event.value() == 1 {
                             click_counter.fetch_add(1, Ordering::Relaxed);
                             if left_enabled.load(Ordering::Relaxed) {
-                                left_click_delay_ns.store(
-                                    Duration::from_secs_f64(
-                                        if fast_enabled.load(Ordering::Relaxed) {
-                                            cli.fast_click_delay
-                                        } else {
-                                            cli.left_click_delay
-                                        },
-                                    )
-                                    .as_nanos() as u64,
-                                    Ordering::Relaxed,
-                                );
                                 match cli.mode {
-                                    Mode::Hold => left_spammer.enable(cli.spammers),
+                                    Mode::Hold => {
+                                        left_click_delay_ns.store(
+                                            to_nanos(if fast_enabled.load(Ordering::Relaxed) {
+                                                cli.fast_click_delay
+                                            } else {
+                                                cli.left_click_delay
+                                            }),
+                                            Ordering::Relaxed,
+                                        );
+                                        left_spammer.enable(cli.spammers);
+                                    }
                                     Mode::Toggle => (),
                                     Mode::Always => unreachable!(),
                                 }
@@ -177,13 +176,14 @@ fn main() {
                         if event.value() == 1 {
                             click_counter.fetch_add(1, Ordering::Relaxed);
                             if right_enabled.load(Ordering::Relaxed) {
-                                right_click_delay_ns.store(
-                                    Duration::from_secs_f64(cli.right_click_delay).as_nanos()
-                                        as u64,
-                                    Ordering::Relaxed,
-                                );
                                 match cli.mode {
-                                    Mode::Hold => right_spammer.enable(cli.spammers),
+                                    Mode::Hold => {
+                                        right_click_delay_ns.store(
+                                            to_nanos(cli.right_click_delay),
+                                            Ordering::Relaxed,
+                                        );
+                                        right_spammer.enable(cli.spammers);
+                                    }
                                     Mode::Toggle => (),
                                     Mode::Always => unreachable!(),
                                 }
@@ -219,7 +219,17 @@ fn main() {
                             if left_enabled.load(Ordering::Relaxed) {
                                 match cli.mode {
                                     Mode::Hold => (),
-                                    Mode::Toggle => left_spammer.enable(cli.spammers),
+                                    Mode::Toggle => {
+                                        left_click_delay_ns.store(
+                                            to_nanos(if fast_enabled.load(Ordering::Relaxed) {
+                                                cli.fast_click_delay
+                                            } else {
+                                                cli.left_click_delay
+                                            }),
+                                            Ordering::Relaxed,
+                                        );
+                                        left_spammer.enable(cli.spammers);
+                                    }
                                     Mode::Always => unreachable!(),
                                 }
                             } else {
@@ -238,7 +248,13 @@ fn main() {
                             if right_enabled.load(Ordering::Relaxed) {
                                 match cli.mode {
                                     Mode::Hold => (),
-                                    Mode::Toggle => right_spammer.enable(cli.spammers),
+                                    Mode::Toggle => {
+                                        right_click_delay_ns.store(
+                                            to_nanos(cli.right_click_delay),
+                                            Ordering::Relaxed,
+                                        );
+                                        right_spammer.enable(cli.spammers);
+                                    }
                                     Mode::Always => unreachable!(),
                                 }
                             } else {
@@ -304,4 +320,8 @@ fn main() {
             }
         }
     }
+}
+
+fn to_nanos<T: Into<f64>>(number: T) -> u64 {
+    Duration::from_secs_f64(number.into()).as_nanos() as u64
 }
