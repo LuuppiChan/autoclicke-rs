@@ -165,6 +165,7 @@ fn main() {
                                     }
                                     Mode::Toggle => {
                                         if cli.disable_on_click {
+                                            left_enabled.store(false, Ordering::Relaxed);
                                             left_spammer.disable();
                                         }
                                     }
@@ -196,6 +197,7 @@ fn main() {
                                     }
                                     Mode::Toggle => {
                                         if cli.disable_on_click {
+                                            right_enabled.store(false, Ordering::Relaxed);
                                             right_spammer.disable();
                                         }
                                     }
