@@ -295,8 +295,10 @@ fn main() {
                         );
                     }
 
-                    if Duration::from_nanos(stored_delay.load(Ordering::Relaxed)).as_secs_f64()
-                        < cli.minimum_delay
+                    if !(fast_enabled.load(Ordering::Relaxed)
+                        && left_spammer.is_enabled())
+                        && Duration::from_nanos(stored_delay.load(Ordering::Relaxed)).as_secs_f64()
+                            < cli.minimum_delay
                     {
                         stored_delay.store(
                             Duration::from_secs_f64(cli.minimum_delay).as_nanos() as u64,

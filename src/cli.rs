@@ -66,6 +66,7 @@ pub struct Cli {
     pub factor: f64,
 
     /// Minimum delay allowed when scrolling.
+    /// If fast mode is enabled, this is ignored.
     /// If input mode is cps this will be the max cps.
     #[arg(long, default_value_t = 0.0)]
     pub minimum_delay: f64,
