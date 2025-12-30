@@ -157,7 +157,11 @@ fn main() {
                                         );
                                         left_spammer.enable(cli.spammers);
                                     }
-                                    Mode::Toggle => (),
+                                    Mode::Toggle => {
+                                        if cli.stop_on_click {
+                                            left_spammer.disable();
+                                        }
+                                    }
                                     Mode::Always => unreachable!(),
                                 }
                             }
@@ -184,7 +188,11 @@ fn main() {
                                         );
                                         right_spammer.enable(cli.spammers);
                                     }
-                                    Mode::Toggle => (),
+                                    Mode::Toggle => {
+                                        if cli.stop_on_click {
+                                            right_spammer.disable();
+                                        }
+                                    }
                                     Mode::Always => unreachable!(),
                                 }
                             }
