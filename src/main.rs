@@ -74,11 +74,7 @@ fn main() {
     let left_spammer = Spammer::new(
         virtual_device.clone(),
         BTN_LEFT,
-        Duration::from_secs_f64(if cli.enable_fast {
-            cli.fast_click_delay
-        } else {
-            cli.start_delay_left
-        }),
+        Duration::from_secs_f64(cli.start_delay_left),
         left_click_delay_ns.clone(),
         click_counter.clone(),
     );
