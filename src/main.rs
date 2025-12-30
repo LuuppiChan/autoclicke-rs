@@ -157,34 +157,15 @@ fn main() {
                                     Ordering::Relaxed,
                                 );
                                 match cli.mode {
-                                    Mode::Hold => {
-                                        if cli.debug {
-                                            println!("Enabling spammer hold");
-                                        }
-                                        left_spammer.enable(cli.spammers);
-                                    }
-                                    Mode::Toggle => {
-                                        if left_spammer.is_enabled() {
-                                            if cli.debug {
-                                                println!("Disabling spammer toggle");
-                                            }
-                                            left_spammer.disable();
-                                        } else {
-                                            if cli.debug {
-                                                println!("Enabling spammer toggle");
-                                            }
-                                            left_spammer.enable(cli.spammers);
-                                        }
-                                    }
+                                    Mode::Hold => left_spammer.enable(cli.spammers),
+                                    Mode::Toggle => (),
                                     Mode::Always => unreachable!(),
                                 }
                             }
                         } else if event.value() == 0 && left_enabled.load(Ordering::Relaxed) {
                             match cli.mode {
-                                Mode::Hold => {
-                                    left_spammer.disable();
-                                }
-                                Mode::Toggle => {}
+                                Mode::Hold => left_spammer.disable(),
+                                Mode::Toggle => (),
                                 Mode::Always => unreachable!(),
                             }
                         }
@@ -202,25 +183,15 @@ fn main() {
                                     Ordering::Relaxed,
                                 );
                                 match cli.mode {
-                                    Mode::Hold => {
-                                        right_spammer.enable(cli.spammers);
-                                    }
-                                    Mode::Toggle => {
-                                        if right_spammer.is_enabled() {
-                                            right_spammer.disable();
-                                        } else {
-                                            right_spammer.enable(cli.spammers);
-                                        }
-                                    }
+                                    Mode::Hold => right_spammer.enable(cli.spammers),
+                                    Mode::Toggle => (),
                                     Mode::Always => unreachable!(),
                                 }
                             }
                         } else if event.value() == 0 && right_enabled.load(Ordering::Relaxed) {
                             match cli.mode {
-                                Mode::Hold => {
-                                    right_spammer.disable();
-                                }
-                                Mode::Toggle => {}
+                                Mode::Hold => right_spammer.disable(),
+                                Mode::Toggle => (),
                                 Mode::Always => unreachable!(),
                             }
                         }
@@ -245,8 +216,18 @@ fn main() {
                     275 => {
                         if event.value() == 1 {
                             left_enabled.fetch_not(Ordering::Relaxed);
-                            if !left_enabled.load(Ordering::Relaxed) {
-                                left_spammer.disable();
+                            if left_enabled.load(Ordering::Relaxed) {
+                                match cli.mode {
+                                    Mode::Hold => (),
+                                    Mode::Toggle => left_spammer.enable(cli.spammers),
+                                    Mode::Always => unreachable!(),
+                                }
+                            } else {
+                                match cli.mode {
+                                    Mode::Hold => left_spammer.disable(),
+                                    Mode::Toggle => left_spammer.disable(),
+                                    Mode::Always => unreachable!(),
+                                }
                             }
                         }
                     }
@@ -254,8 +235,18 @@ fn main() {
                     276 => {
                         if event.value() == 1 {
                             right_enabled.fetch_not(Ordering::Relaxed);
-                            if !right_enabled.load(Ordering::Relaxed) {
-                                right_spammer.disable();
+                            if right_enabled.load(Ordering::Relaxed) {
+                                match cli.mode {
+                                    Mode::Hold => (),
+                                    Mode::Toggle => right_spammer.enable(cli.spammers),
+                                    Mode::Always => unreachable!(),
+                                }
+                            } else {
+                                match cli.mode {
+                                    Mode::Hold => right_spammer.disable(),
+                                    Mode::Toggle => right_spammer.disable(),
+                                    Mode::Always => unreachable!(),
+                                }
                             }
                         }
                     }
@@ -295,8 +286,7 @@ fn main() {
                         );
                     }
 
-                    if !(fast_enabled.load(Ordering::Relaxed)
-                        && left_spammer.is_enabled())
+                    if !(fast_enabled.load(Ordering::Relaxed) && left_spammer.is_enabled())
                         && Duration::from_nanos(stored_delay.load(Ordering::Relaxed)).as_secs_f64()
                             < cli.minimum_delay
                     {
