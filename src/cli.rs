@@ -104,7 +104,12 @@ pub enum Mode {
     /// Clicks when holding the button down.
     Hold,
     /// Toggles clicking so you don't have to hold anything to click.
+    /// Start delay determines whether hold or toggle mode is used.
     Toggle,
+    /// Why not just have both? Hold and toggle.
+    Both,
     /// Instantly starts to spam enabled keys before the program is killed.
     Always,
+    // Instead of clicking mouse keys, clicks specified keyboard key.
+    //Keyboard,
 }

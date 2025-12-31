@@ -4,7 +4,7 @@ use std::{
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
     thread::sleep,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use clap::Parser;
@@ -70,6 +70,8 @@ fn main() {
     let right_click_delay_ns = Arc::new(AtomicU64::new(
         Duration::from_secs_f64(cli.right_click_delay).as_nanos() as u64,
     ));
+    let mut last_left_click = Instant::now();
+    let mut last_right_click = Instant::now();
 
     let left_spammer = Spammer::new(
         virtual_device.clone(),
@@ -170,6 +172,22 @@ fn main() {
                                             left_spammer.disable();
                                         }
                                     }
+                                    Mode::Both => {
+                                        if left_spammer.is_enabled() {
+                                            left_spammer.disable();
+                                        } else {
+                                            left_click_delay_ns.store(
+                                                to_nanos(if fast_enabled.load(Ordering::Relaxed) {
+                                                    cli.fast_click_delay
+                                                } else {
+                                                    cli.left_click_delay
+                                                }),
+                                                Ordering::Relaxed,
+                                            );
+                                            last_left_click = Instant::now();
+                                            left_spammer.enable(cli.spammers);
+                                        }
+                                    }
                                     Mode::Always => unreachable!(),
                                 }
                             }
@@ -177,6 +195,13 @@ fn main() {
                             match cli.mode {
                                 Mode::Hold => left_spammer.disable(),
                                 Mode::Toggle => (),
+                                Mode::Both => {
+                                    if last_left_click.elapsed()
+                                        > Duration::from_secs_f64(cli.start_delay_left)
+                                    {
+                                        left_spammer.disable();
+                                    }
+                                }
                                 Mode::Always => unreachable!(),
                             }
                         }
@@ -202,6 +227,18 @@ fn main() {
                                             right_spammer.disable();
                                         }
                                     }
+                                    Mode::Both => {
+                                        if right_spammer.is_enabled() {
+                                            right_spammer.disable();
+                                        } else {
+                                            right_click_delay_ns.store(
+                                                to_nanos(cli.right_click_delay),
+                                                Ordering::Relaxed,
+                                            );
+                                            last_right_click = Instant::now();
+                                            right_spammer.enable(cli.spammers);
+                                        }
+                                    }
                                     Mode::Always => unreachable!(),
                                 }
                             }
@@ -209,6 +246,13 @@ fn main() {
                             match cli.mode {
                                 Mode::Hold => right_spammer.disable(),
                                 Mode::Toggle => (),
+                                Mode::Both => {
+                                    if last_right_click.elapsed()
+                                        > Duration::from_secs_f64(cli.start_delay_right)
+                                    {
+                                        right_spammer.disable();
+                                    }
+                                }
                                 Mode::Always => unreachable!(),
                             }
                         }
@@ -247,12 +291,14 @@ fn main() {
                                         );
                                         left_spammer.enable(cli.spammers);
                                     }
+                                    Mode::Both => (),
                                     Mode::Always => unreachable!(),
                                 }
                             } else {
                                 match cli.mode {
                                     Mode::Hold => left_spammer.disable(),
                                     Mode::Toggle => left_spammer.disable(),
+                                    Mode::Both => left_spammer.disable(),
                                     Mode::Always => unreachable!(),
                                 }
                             }
@@ -272,12 +318,14 @@ fn main() {
                                         );
                                         right_spammer.enable(cli.spammers);
                                     }
+                                    Mode::Both => (),
                                     Mode::Always => unreachable!(),
                                 }
                             } else {
                                 match cli.mode {
                                     Mode::Hold => right_spammer.disable(),
                                     Mode::Toggle => right_spammer.disable(),
+                                    Mode::Both => right_spammer.disable(),
                                     Mode::Always => unreachable!(),
                                 }
                             }
