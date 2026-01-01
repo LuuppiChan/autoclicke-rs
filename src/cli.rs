@@ -64,7 +64,7 @@ pub struct Cli {
 
     /// How much can the calculated random can differ from base. In float percentage.
     /// Allowed range: 0 to 1
-    #[arg(long, default_value_t = 0.8)]
+    #[arg(long, default_value_t = 0.3)]
     pub deviation: f64,
 
     /// Change cps when autoclicking by scrolling.
