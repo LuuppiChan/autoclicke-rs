@@ -2,7 +2,12 @@
 An advanced cli autoclicker written in rust for Linux. Works on X11 (not tested) and Wayland. And on any installation that has uinput enabled.
 
 # Features
+This is just an output of the --help command.
 ```
+This autoclicker can either work when holding down a mouse key, always when on and with mouse keys togging it on and off.
+
+Usage: autoclicker [OPTIONS] [MOUSE_PATH]
+
 Arguments:
   [MOUSE_PATH]
           Will autoclick based on this mouse
@@ -37,7 +42,8 @@ Options:
 
           Possible values:
           - hold:   Clicks when holding the button down
-          - toggle: Toggles clicking so you don't have to hold anything to click
+          - toggle: Toggles clicking so you don't have to hold anything to click. Start delay determines whether hold or toggle mode is used
+          - both:   Why not just have both? Hold and toggle
           - always: Instantly starts to spam enabled keys before the program is killed
           
           [default: hold]
@@ -63,6 +69,14 @@ Options:
           Delay before to start right clicking
           
           [default: 0.1]
+
+      --randomize
+          Whether to randomize the delay slightly
+
+      --deviation <DEVIATION>
+          How much can the calculated random can differ from base. In float percentage. Allowed range: 0 to 1
+          
+          [default: 0.3]
 
   -s, --scroll-changes-cps
           Change cps when autoclicking by scrolling. Left click takes priority when you're clicking with both. Will reset after stopping clicking. Does not work with always mode
