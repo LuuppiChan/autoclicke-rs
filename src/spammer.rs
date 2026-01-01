@@ -66,32 +66,26 @@ impl Spammer {
 
             thread::spawn(move || {
                 sleep(start_delay);
-                if randomize {
-                    let mut rng = rand::rng();
-                    while enabled.load(Ordering::Relaxed) {
-                        device.emit_key_code_silent(key, 1);
-                        device.sync_silent();
+                let mut rng = rand::rng();
 
-                        let nanos = click_delay_ns.load(Ordering::Relaxed);
+                while enabled.load(Ordering::Relaxed) {
+                    device.emit_key_code_silent(key, 1);
+                    device.sync_silent();
+
+                    let nanos = click_delay_ns.load(Ordering::Relaxed);
+                    let delay = if randomize {
                         let base = nanos as f64 / 1_000_000_000.0;
-                        let factor =
+                        let result =
                             rng.random_range(base * (1.0 - deviation)..=base * (1.0 + deviation));
-                        // println!(" {factor}");
-                        sleep(Duration::from_secs_f64(factor));
+                        Duration::from_secs_f64(result)
+                    } else {
+                        Duration::from_nanos(nanos)
+                    };
+                    sleep(delay);
 
-                        device.emit_key_code_silent(key, 0);
-                        device.sync_silent();
-                        click_counter.fetch_add(1, Ordering::Relaxed);
-                    }
-                } else {
-                    while enabled.load(Ordering::Relaxed) {
-                        device.emit_key_code_silent(key, 1);
-                        device.sync_silent();
-                        sleep(Duration::from_nanos(click_delay_ns.load(Ordering::Relaxed)));
-                        device.emit_key_code_silent(key, 0);
-                        device.sync_silent();
-                        click_counter.fetch_add(1, Ordering::Relaxed);
-                    }
+                    device.emit_key_code_silent(key, 0);
+                    device.sync_silent();
+                    click_counter.fetch_add(1, Ordering::Relaxed);
                 }
             });
         }
