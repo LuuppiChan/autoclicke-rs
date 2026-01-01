@@ -58,6 +58,15 @@ pub struct Cli {
     #[arg(long, default_value_t = 0.1)]
     pub start_delay_right: f64,
 
+    /// Whether to randomize the delay slightly.
+    #[arg(long)]
+    pub randomize: bool,
+
+    /// How much can the calculated random can differ from base. In float percentage.
+    /// Allowed range: 0 to 1
+    #[arg(long, default_value_t = 0.8)]
+    pub deviation: f64,
+
     /// Change cps when autoclicking by scrolling.
     /// Left click takes priority when you're clicking with both.
     /// Will reset after stopping clicking.

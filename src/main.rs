@@ -35,6 +35,13 @@ fn main() {
         cli.fast_click_delay = 1.0 / cli.fast_click_delay;
         cli.minimum_delay = 1.0 / cli.minimum_delay;
     }
+    if cli.deviation > 1.0 || cli.deviation < 0.0 {
+        println!(
+            "Selected deviation {} is not between 0 and 1.",
+            cli.deviation
+        );
+        return;
+    }
     if cli.debug {
         dbg!(&cli.mode);
     }
@@ -79,6 +86,8 @@ fn main() {
         Duration::from_secs_f64(cli.start_delay_left),
         left_click_delay_ns.clone(),
         click_counter.clone(),
+        cli.randomize,
+        cli.deviation,
     );
     let right_spammer = Spammer::new(
         virtual_device.clone(),
@@ -86,6 +95,8 @@ fn main() {
         Duration::from_secs_f64(cli.start_delay_right),
         right_click_delay_ns.clone(),
         click_counter.clone(),
+        cli.randomize,
+        cli.deviation,
     );
 
     if cli.mode == Mode::Always {
