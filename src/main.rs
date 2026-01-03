@@ -1,82 +1,40 @@
 use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicU64, Ordering},
-    },
-    thread::sleep,
+    sync::{Arc, atomic::Ordering},
     time::{Duration, Instant},
 };
 
-use clap::Parser;
-use uinput_rs::{
-    UInputUserDevice,
-    key_codes::{
-        BTN_EXTRA, BTN_LEFT, BTN_MIDDLE, BTN_MOUSE, BTN_RIGHT, BTN_SIDE, REL_HWHEEL,
-        REL_HWHEEL_HI_RES, REL_WHEEL, REL_WHEEL_HI_RES, REL_X, REL_Y,
-    },
-    name_from_str,
-};
+use uinput_rs::key_codes::{BTN_LEFT, BTN_MIDDLE, BTN_RIGHT};
 
 use crate::{
-    cli::{ClickMode, Mode},
+    cli::Mode,
+    conversions::to_nanos,
     interface::{print_beginning, spawn_status_thread},
     spammer::Spammer,
 };
 
+mod always;
 mod cli;
+mod conversions;
 mod interface;
+mod shared_state;
 mod spammer;
+mod virtual_device;
 
 fn main() {
-    let mut cli = cli::Cli::parse();
-    if cli.click_mode == ClickMode::Cps {
-        cli.left_click_delay = 1.0 / cli.left_click_delay;
-        cli.right_click_delay = 1.0 / cli.right_click_delay;
-        cli.fast_click_delay = 1.0 / cli.fast_click_delay;
-        cli.minimum_delay = 1.0 / cli.minimum_delay;
-    }
-    if cli.deviation > 1.0 || cli.deviation < 0.0 {
-        println!(
-            "Selected deviation {} is not between 0 and 1.",
-            cli.deviation
-        );
-        return;
-    }
-    if cli.debug {
-        dbg!(&cli.mode);
-    }
+    let cli = cli::parse();
+    let virtual_device = Arc::new(virtual_device::get());
 
-    let events = [
-        BTN_MOUSE,
-        BTN_RIGHT,
-        REL_X,
-        REL_Y,
-        BTN_MIDDLE,
-        BTN_SIDE,
-        BTN_EXTRA,
-        REL_WHEEL,
-        REL_WHEEL_HI_RES,
-        REL_HWHEEL,
-        REL_HWHEEL_HI_RES,
-    ];
-    let device_info = UInputUserDevice {
-        name: name_from_str("Rustclicker").unwrap(),
-        ..Default::default()
-    };
-    let virtual_device = Arc::new(
-        uinput_rs::Device::new_custom(&events, &device_info).expect("Error creating device."),
-    );
-
-    let left_enabled = Arc::new(AtomicBool::new(cli.enable_left));
-    let right_enabled = Arc::new(AtomicBool::new(cli.enable_right));
-    let fast_enabled = Arc::new(AtomicBool::new(cli.enable_fast));
-    let click_counter = Arc::new(AtomicU64::new(0));
-    let left_click_delay_ns = Arc::new(AtomicU64::new(
-        Duration::from_secs_f64(cli.left_click_delay).as_nanos() as u64,
-    ));
-    let right_click_delay_ns = Arc::new(AtomicU64::new(
-        Duration::from_secs_f64(cli.right_click_delay).as_nanos() as u64,
-    ));
+    // let left_enabled = Arc::new(AtomicBool::new(cli.enable_left));
+    // let right_enabled = Arc::new(AtomicBool::new(cli.enable_right));
+    // let fast_enabled = Arc::new(AtomicBool::new(cli.enable_fast));
+    // let click_counter = Arc::new(AtomicU64::new(0));
+    // let left_click_delay_ns = Arc::new(AtomicU64::new(
+    //     Duration::from_secs_f64(cli.left_click_delay).as_nanos() as u64,
+    // ));
+    // let right_click_delay_ns = Arc::new(AtomicU64::new(
+    //     Duration::from_secs_f64(cli.right_click_delay).as_nanos() as u64,
+    // ));
+    let state = shared_state::init(&cli);
     let mut last_left_click = Instant::now();
     let mut last_right_click = Instant::now();
 
@@ -84,8 +42,8 @@ fn main() {
         virtual_device.clone(),
         BTN_LEFT,
         Duration::from_secs_f64(cli.start_delay_left),
-        left_click_delay_ns.clone(),
-        click_counter.clone(),
+        state.clone(),
+        state.left_click_delay_ns.clone(),
         cli.randomize,
         cli.deviation,
     );
@@ -93,34 +51,19 @@ fn main() {
         virtual_device.clone(),
         BTN_RIGHT,
         Duration::from_secs_f64(cli.start_delay_right),
-        right_click_delay_ns.clone(),
-        click_counter.clone(),
+        state.clone(),
+        state.right_click_delay_ns.clone(),
         cli.randomize,
         cli.deviation,
     );
 
     if cli.mode == Mode::Always {
-        sleep(Duration::from_millis(100));
-        print_beginning(
-            &"No device needed",
-            &cli.start_delay_left,
-            &cli.start_delay_right,
-            &cli.left_click_delay,
-            &cli.right_click_delay,
-            &cli.fast_click_delay,
-        );
-        if cli.enable_left {
-            left_spammer.enable(cli.spammers);
-        }
-        if cli.enable_right {
-            right_spammer.enable(cli.spammers);
-        }
-        loop {
-            sleep(Duration::from_secs(60 * 60));
-        }
+        always::run(cli, left_spammer, right_spammer);
     } else if cli.mode == Mode::Toggle {
         if cli.enable_fast {
-            left_click_delay_ns.store(to_nanos(cli.fast_click_delay), Ordering::Relaxed);
+            state
+                .left_click_delay_ns
+                .store(to_nanos(cli.fast_click_delay), Ordering::Relaxed);
         }
         if cli.enable_left {
             left_spammer.enable(cli.spammers);
@@ -132,7 +75,7 @@ fn main() {
 
     let mut device = evdev::Device::open(
         cli.mouse_path
-            .expect("Please give a mouse path is required if you use Hold or Toggle modes."),
+            .expect("Please give a mouse path. It's required if you use Hold or Toggle modes."),
     )
     .expect("Error opening device");
 
@@ -144,13 +87,7 @@ fn main() {
         &cli.right_click_delay,
         &cli.fast_click_delay,
     );
-    spawn_status_thread(
-        click_counter.clone(),
-        left_enabled.clone(),
-        right_enabled.clone(),
-        fast_enabled.clone(),
-        cli.update_delay,
-    );
+    spawn_status_thread(state.clone(), cli.update_delay);
 
     device.grab().expect("Error grabbing selected device.");
 
@@ -163,23 +100,25 @@ fn main() {
                         virtual_device.emit_key_code_silent(BTN_LEFT, event.value());
 
                         if event.value() == 1 {
-                            click_counter.fetch_add(1, Ordering::Relaxed);
-                            if left_enabled.load(Ordering::Relaxed) {
+                            state.click_counter.fetch_add(1, Ordering::Relaxed);
+                            if state.left_enabled.load(Ordering::Relaxed) {
                                 match cli.mode {
                                     Mode::Hold => {
-                                        left_click_delay_ns.store(
-                                            to_nanos(if fast_enabled.load(Ordering::Relaxed) {
-                                                cli.fast_click_delay
-                                            } else {
-                                                cli.left_click_delay
-                                            }),
+                                        state.left_click_delay_ns.store(
+                                            to_nanos(
+                                                if state.fast_enabled.load(Ordering::Relaxed) {
+                                                    cli.fast_click_delay
+                                                } else {
+                                                    cli.left_click_delay
+                                                },
+                                            ),
                                             Ordering::Relaxed,
                                         );
                                         left_spammer.enable(cli.spammers);
                                     }
                                     Mode::Toggle => {
                                         if cli.disable_on_click {
-                                            left_enabled.store(false, Ordering::Relaxed);
+                                            state.left_enabled.store(false, Ordering::Relaxed);
                                             left_spammer.disable();
                                         }
                                     }
@@ -187,12 +126,14 @@ fn main() {
                                         if left_spammer.is_enabled() {
                                             left_spammer.disable();
                                         } else {
-                                            left_click_delay_ns.store(
-                                                to_nanos(if fast_enabled.load(Ordering::Relaxed) {
-                                                    cli.fast_click_delay
-                                                } else {
-                                                    cli.left_click_delay
-                                                }),
+                                            state.left_click_delay_ns.store(
+                                                to_nanos(
+                                                    if state.fast_enabled.load(Ordering::Relaxed) {
+                                                        cli.fast_click_delay
+                                                    } else {
+                                                        cli.left_click_delay
+                                                    },
+                                                ),
                                                 Ordering::Relaxed,
                                             );
                                             last_left_click = Instant::now();
@@ -202,7 +143,7 @@ fn main() {
                                     Mode::Always => unreachable!(),
                                 }
                             }
-                        } else if event.value() == 0 && left_enabled.load(Ordering::Relaxed) {
+                        } else if event.value() == 0 && state.left_enabled.load(Ordering::Relaxed) {
                             match cli.mode {
                                 Mode::Hold => left_spammer.disable(),
                                 Mode::Toggle => (),
@@ -222,11 +163,11 @@ fn main() {
                         virtual_device.emit_key_code_silent(BTN_RIGHT, event.value());
 
                         if event.value() == 1 {
-                            click_counter.fetch_add(1, Ordering::Relaxed);
-                            if right_enabled.load(Ordering::Relaxed) {
+                            state.click_counter.fetch_add(1, Ordering::Relaxed);
+                            if state.right_enabled.load(Ordering::Relaxed) {
                                 match cli.mode {
                                     Mode::Hold => {
-                                        right_click_delay_ns.store(
+                                        state.right_click_delay_ns.store(
                                             to_nanos(cli.right_click_delay),
                                             Ordering::Relaxed,
                                         );
@@ -234,7 +175,7 @@ fn main() {
                                     }
                                     Mode::Toggle => {
                                         if cli.disable_on_click {
-                                            right_enabled.store(false, Ordering::Relaxed);
+                                            state.right_enabled.store(false, Ordering::Relaxed);
                                             right_spammer.disable();
                                         }
                                     }
@@ -242,7 +183,7 @@ fn main() {
                                         if right_spammer.is_enabled() {
                                             right_spammer.disable();
                                         } else {
-                                            right_click_delay_ns.store(
+                                            state.right_click_delay_ns.store(
                                                 to_nanos(cli.right_click_delay),
                                                 Ordering::Relaxed,
                                             );
@@ -253,7 +194,8 @@ fn main() {
                                     Mode::Always => unreachable!(),
                                 }
                             }
-                        } else if event.value() == 0 && right_enabled.load(Ordering::Relaxed) {
+                        } else if event.value() == 0 && state.right_enabled.load(Ordering::Relaxed)
+                        {
                             match cli.mode {
                                 Mode::Hold => right_spammer.disable(),
                                 Mode::Toggle => (),
@@ -271,14 +213,16 @@ fn main() {
                     // middle
                     274 => {
                         virtual_device.emit_key_code_silent(BTN_MIDDLE, event.value());
-                        if event.value() == 1 && left_enabled.load(Ordering::Relaxed) {
-                            fast_enabled.fetch_not(Ordering::Relaxed);
-                            left_click_delay_ns.store(
-                                Duration::from_secs_f64(if fast_enabled.load(Ordering::Relaxed) {
-                                    cli.fast_click_delay
-                                } else {
-                                    cli.left_click_delay
-                                })
+                        if event.value() == 1 && state.left_enabled.load(Ordering::Relaxed) {
+                            state.fast_enabled.fetch_not(Ordering::Relaxed);
+                            state.left_click_delay_ns.store(
+                                Duration::from_secs_f64(
+                                    if state.fast_enabled.load(Ordering::Relaxed) {
+                                        cli.fast_click_delay
+                                    } else {
+                                        cli.left_click_delay
+                                    },
+                                )
                                 .as_nanos() as u64,
                                 Ordering::Relaxed,
                             );
@@ -287,17 +231,19 @@ fn main() {
                     // side
                     275 => {
                         if event.value() == 1 {
-                            left_enabled.fetch_not(Ordering::Relaxed);
-                            if left_enabled.load(Ordering::Relaxed) {
+                            state.left_enabled.fetch_not(Ordering::Relaxed);
+                            if state.left_enabled.load(Ordering::Relaxed) {
                                 match cli.mode {
                                     Mode::Hold => (),
                                     Mode::Toggle => {
-                                        left_click_delay_ns.store(
-                                            to_nanos(if fast_enabled.load(Ordering::Relaxed) {
-                                                cli.fast_click_delay
-                                            } else {
-                                                cli.left_click_delay
-                                            }),
+                                        state.left_click_delay_ns.store(
+                                            to_nanos(
+                                                if state.fast_enabled.load(Ordering::Relaxed) {
+                                                    cli.fast_click_delay
+                                                } else {
+                                                    cli.left_click_delay
+                                                },
+                                            ),
                                             Ordering::Relaxed,
                                         );
                                         left_spammer.enable(cli.spammers);
@@ -318,12 +264,12 @@ fn main() {
                     // extra
                     276 => {
                         if event.value() == 1 {
-                            right_enabled.fetch_not(Ordering::Relaxed);
-                            if right_enabled.load(Ordering::Relaxed) {
+                            state.right_enabled.fetch_not(Ordering::Relaxed);
+                            if state.right_enabled.load(Ordering::Relaxed) {
                                 match cli.mode {
                                     Mode::Hold => (),
                                     Mode::Toggle => {
-                                        right_click_delay_ns.store(
+                                        state.right_click_delay_ns.store(
                                             to_nanos(cli.right_click_delay),
                                             Ordering::Relaxed,
                                         );
@@ -353,9 +299,9 @@ fn main() {
                     && (left_spammer.is_enabled() || right_spammer.is_enabled()) =>
                 {
                     let stored_delay = if left_spammer.is_enabled() {
-                        &left_click_delay_ns
+                        &state.left_click_delay_ns
                     } else if right_spammer.is_enabled() {
-                        &right_click_delay_ns
+                        &state.right_click_delay_ns
                     } else {
                         // I'm 90% sure this is unreachable
                         // Yeah except if one manages to turn off a spammer between.
@@ -378,7 +324,7 @@ fn main() {
                         );
                     }
 
-                    if !(fast_enabled.load(Ordering::Relaxed) && left_spammer.is_enabled())
+                    if !(state.fast_enabled.load(Ordering::Relaxed) && left_spammer.is_enabled())
                         && Duration::from_nanos(stored_delay.load(Ordering::Relaxed)).as_secs_f64()
                             < cli.minimum_delay
                     {
@@ -396,8 +342,4 @@ fn main() {
             }
         }
     }
-}
-
-fn to_nanos<T: Into<f64>>(number: T) -> u64 {
-    Duration::from_secs_f64(number.into()).as_nanos() as u64
 }

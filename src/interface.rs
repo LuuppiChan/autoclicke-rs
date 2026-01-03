@@ -1,15 +1,14 @@
 use std::{
     fmt::Display,
     io::{Write, stdout},
-    sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicU64, Ordering},
-    },
+    sync::atomic::Ordering,
     thread::{self, sleep},
     time::Duration,
 };
 
 use ringbuffer::{AllocRingBuffer, RingBuffer};
+
+use crate::shared_state::SharedState;
 
 pub fn print_beginning<T: Display, U: Display>(
     device_name: &T,
@@ -48,24 +47,18 @@ pub fn print_state<T: Display, U: Display, V: Display, W: Display>(
     let _ = stdout().flush();
 }
 
-pub fn spawn_status_thread(
-    click_counter: Arc<AtomicU64>,
-    left_enabled: Arc<AtomicBool>,
-    right_enabled: Arc<AtomicBool>,
-    fast_enabled: Arc<AtomicBool>,
-    update_delay: u64,
-) {
-    let cps = Arc::new(AtomicU64::new(0));
-    let cps_copy = cps.clone();
+pub fn spawn_status_thread(state: SharedState, update_delay: u64) {
+    let cps = state.cps.clone();
     thread::spawn(move || {
         let delay = Duration::from_millis(update_delay);
-        let mut buckets: AllocRingBuffer<u64> = AllocRingBuffer::new((1000 / update_delay) as usize);
+        let mut buckets: AllocRingBuffer<u64> =
+            AllocRingBuffer::new((1000 / update_delay) as usize);
         loop {
             sleep(delay);
-            let clicks = click_counter.load(Ordering::Relaxed);
-            click_counter.fetch_sub(clicks, Ordering::Relaxed);
+            let clicks = state.click_counter.load(Ordering::Relaxed);
+            state.click_counter.fetch_sub(clicks, Ordering::Relaxed);
             buckets.enqueue(clicks);
-            cps_copy.store(buckets.iter().sum::<u64>(), Ordering::Relaxed);
+            cps.store(buckets.iter().sum::<u64>(), Ordering::Relaxed);
         }
     });
 
@@ -75,10 +68,10 @@ pub fn spawn_status_thread(
         loop {
             sleep(delay);
             print_state(
-                left_enabled.load(Ordering::Relaxed),
-                right_enabled.load(Ordering::Relaxed),
-                fast_enabled.load(Ordering::Relaxed),
-                cps.load(Ordering::Relaxed),
+                state.left_enabled.load(Ordering::Relaxed),
+                state.right_enabled.load(Ordering::Relaxed),
+                state.fast_enabled.load(Ordering::Relaxed),
+                state.cps.load(Ordering::Relaxed),
             );
         }
     });

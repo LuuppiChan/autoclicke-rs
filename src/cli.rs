@@ -1,4 +1,27 @@
+use std::process::exit;
+
 use clap::{Parser, ValueEnum};
+
+pub fn parse() -> Cli {
+    let mut cli = Cli::parse();
+    if cli.click_mode == ClickMode::Cps {
+        cli.left_click_delay = 1.0 / cli.left_click_delay;
+        cli.right_click_delay = 1.0 / cli.right_click_delay;
+        cli.fast_click_delay = 1.0 / cli.fast_click_delay;
+        cli.minimum_delay = 1.0 / cli.minimum_delay;
+    }
+    if cli.deviation > 1.0 || cli.deviation < 0.0 {
+        println!(
+            "Selected deviation {} is not between 0 and 1.",
+            cli.deviation
+        );
+        exit(1);
+    }
+    if cli.debug {
+        dbg!(&cli.mode);
+    }
+    cli
+}
 
 #[derive(Parser)]
 #[command(

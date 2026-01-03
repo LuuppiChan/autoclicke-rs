@@ -10,6 +10,8 @@ use std::{
 
 use rand::Rng;
 
+use crate::shared_state::SharedState;
+
 pub struct Spammer {
     enabled: Arc<AtomicBool>,
     device: Arc<uinput_rs::Device>,
@@ -17,8 +19,8 @@ pub struct Spammer {
     randomize: bool,
     deviation: f64,
     start_delay: Duration,
+    state: SharedState,
     click_delay_ns: Arc<AtomicU64>,
-    click_counter: Arc<AtomicU64>,
 }
 
 impl Spammer {
@@ -27,8 +29,8 @@ impl Spammer {
         device: Arc<uinput_rs::Device>,
         key: (u64, u64),
         start_delay: Duration,
+        state: SharedState,
         click_delay_ns: Arc<AtomicU64>,
-        click_counter: Arc<AtomicU64>,
         randomize: bool,
         deviation: f64,
     ) -> Self {
@@ -39,8 +41,8 @@ impl Spammer {
             randomize,
             deviation,
             start_delay,
+            state,
             click_delay_ns,
-            click_counter,
         }
     }
 
@@ -59,7 +61,11 @@ impl Spammer {
             let enabled = self.enabled.clone();
             let device = self.device.clone();
             let key = self.key;
-            let click_counter = self.click_counter.clone();
+            let click_counter = self.state.click_counter.clone();
+            // hacky, but it will work for now
+            // Maybe turn the click delays into a vector of enum members
+            // then match
+            // Or just give the specified index in that vector which has the wanted delay
             let click_delay_ns = self.click_delay_ns.clone();
             let randomize = self.randomize;
             let deviation = self.deviation;
