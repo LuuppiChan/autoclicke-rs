@@ -47,7 +47,7 @@ pub fn print_state<T: Display, U: Display, V: Display, W: Display>(
     let _ = stdout().flush();
 }
 
-pub fn spawn_status_thread(state: SharedState, update_delay: u64) {
+pub fn spawn_cps_calculator(state: SharedState, update_delay: u64) {
     let cps = state.cps.clone();
     thread::spawn(move || {
         let delay = Duration::from_millis(update_delay);
@@ -61,7 +61,9 @@ pub fn spawn_status_thread(state: SharedState, update_delay: u64) {
             cps.store(buckets.iter().sum::<u64>(), Ordering::Relaxed);
         }
     });
+}
 
+pub fn spawn_status_thread(state: SharedState) {
     thread::spawn(move || {
         let delay = Duration::from_millis(10);
 
