@@ -55,6 +55,7 @@ pub fn handle_click(
                     *last_click = Instant::now();
                     state.toggle_spammer(spammer_key).unwrap();
                 }
+                Mode::Disabled => (),
                 Mode::Always => unreachable!(),
             }
         }
@@ -70,6 +71,7 @@ pub fn handle_click(
                     state.disable_spammer(spammer_key).unwrap();
                 }
             }
+            Mode::Disabled => (),
             Mode::Always => unreachable!(),
         }
     }

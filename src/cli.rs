@@ -142,6 +142,6 @@ pub enum Mode {
     Both,
     /// Instantly starts to spam enabled keys before the program is killed.
     Always,
-    // Instead of clicking mouse keys, clicks specified keyboard key.
-    //Keyboard,
+    /// Just pass-through mouse events
+    Disabled,
 }

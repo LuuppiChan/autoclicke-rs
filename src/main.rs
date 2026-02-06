@@ -141,7 +141,7 @@ fn main() {
                         }
                     }
                     // side
-                    275 => {
+                    275 if cli.mode != Mode::Disabled => {
                         if event.value() == 1 {
                             state.left_enabled.fetch_not(Ordering::Relaxed);
                             if state.left_enabled.load(Ordering::Relaxed) {
@@ -163,6 +163,7 @@ fn main() {
                                         state.enable_spammer("left").unwrap();
                                     }
                                     Mode::Both => (),
+                                    Mode::Disabled => (),
                                     Mode::Always => unreachable!(),
                                 }
                             } else {
@@ -170,6 +171,14 @@ fn main() {
                                     Mode::Hold => state.disable_spammer("left"),
                                     Mode::Toggle => state.disable_spammer("left"),
                                     Mode::Both => state.disable_spammer("left"),
+                                    Mode::Disabled => {
+                                        virtual_device.emit_silent(
+                                            event.event_type().0,
+                                            event.code(),
+                                            event.value(),
+                                        );
+                                        Ok(())
+                                    }
                                     Mode::Always => unreachable!(),
                                 }
                                 .unwrap();
@@ -177,7 +186,7 @@ fn main() {
                         }
                     }
                     // extra
-                    276 => {
+                    276 if cli.mode != Mode::Disabled => {
                         if event.value() == 1 {
                             state.right_enabled.fetch_not(Ordering::Relaxed);
                             if state.right_enabled.load(Ordering::Relaxed) {
@@ -193,6 +202,11 @@ fn main() {
                                         state.enable_spammer("right").unwrap();
                                     }
                                     Mode::Both => (),
+                                    Mode::Disabled => virtual_device.emit_silent(
+                                        event.event_type().0,
+                                        event.code(),
+                                        event.value(),
+                                    ),
                                     Mode::Always => unreachable!(),
                                 }
                             } else {
@@ -200,6 +214,7 @@ fn main() {
                                     Mode::Hold => state.disable_spammer("right"),
                                     Mode::Toggle => state.disable_spammer("right"),
                                     Mode::Both => state.disable_spammer("right"),
+                                    Mode::Disabled => Ok(()),
                                     Mode::Always => unreachable!(),
                                 }
                                 .unwrap();

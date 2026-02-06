@@ -87,6 +87,7 @@ impl Spammer {
             .store(to_nanos(delay), Ordering::Relaxed);
     }
 
+    #[allow(dead_code)]
     pub fn set_click_delay_ns(&mut self, delay: u64) {
         self.click_delay_ns.store(delay, Ordering::Relaxed);
     }
