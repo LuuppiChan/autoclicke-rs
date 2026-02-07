@@ -142,6 +142,7 @@ pub enum Mode {
     Both,
     /// Instantly starts to spam enabled keys before the program is killed.
     Always,
-    /// Just pass-through mouse events
+    /// Just pass-through mouse events.
+    /// I personally use this for disabling debounce time.
     Disabled,
 }

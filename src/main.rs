@@ -171,14 +171,7 @@ fn main() {
                                     Mode::Hold => state.disable_spammer("left"),
                                     Mode::Toggle => state.disable_spammer("left"),
                                     Mode::Both => state.disable_spammer("left"),
-                                    Mode::Disabled => {
-                                        virtual_device.emit_silent(
-                                            event.event_type().0,
-                                            event.code(),
-                                            event.value(),
-                                        );
-                                        Ok(())
-                                    }
+                                    Mode::Disabled => Ok(()),
                                     Mode::Always => unreachable!(),
                                 }
                                 .unwrap();
@@ -202,11 +195,7 @@ fn main() {
                                         state.enable_spammer("right").unwrap();
                                     }
                                     Mode::Both => (),
-                                    Mode::Disabled => virtual_device.emit_silent(
-                                        event.event_type().0,
-                                        event.code(),
-                                        event.value(),
-                                    ),
+                                    Mode::Disabled => (),
                                     Mode::Always => unreachable!(),
                                 }
                             } else {
