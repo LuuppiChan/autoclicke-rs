@@ -1,6 +1,35 @@
 # autoclicke-rs
 An advanced cli autoclicker written in rust for Linux. Works on X11 (not tested) and Wayland. And on any installation that has uinput enabled.
 
+# Download latest binary
+
+## Ensure uinput kernel module is enabled
+Without uinput kernel module this will not work.
+```bash
+sudo modprobe -i uinput
+```
+
+## Either launch the program as root or add user to input group
+I personally just launch the program as root, but you can also add you to the input group if you don't want to run it as root.
+
+## Download
+https://github.com/LuuppiChan/autoclicke-rs/releases/latest/download/autoclicker
+
+```bash
+# Go to the folder you downloaded it to
+cd ~/Downloads/autoclicker # Replace with the actual path
+# Mark it as an executable
+chmod +x autoclicker
+# Run it (This just prints the help command)
+autoclicker --help
+```
+This is not a permanent solution and you should move the binary to a `bin/` folder.
+
+## Find your input device path
+Usually mouses are something like /dev/input/event*
+
+You can use `evtest` to find yours. If you don't have it installed you can install it from your package manager.
+
 # Features
 This is just an output of the --help command.
 ```
@@ -41,10 +70,11 @@ Options:
           Program operation mode
 
           Possible values:
-          - hold:   Clicks when holding the button down
-          - toggle: Toggles clicking so you don't have to hold anything to click. Start delay determines whether hold or toggle mode is used
-          - both:   Why not just have both? Hold and toggle
-          - always: Instantly starts to spam enabled keys before the program is killed
+          - hold:     Clicks when holding the button down
+          - toggle:   Toggles clicking so you don't have to hold anything to click. Start delay determines whether hold or toggle mode is used
+          - both:     Why not just have both? Hold and toggle
+          - always:   Instantly starts to spam enabled keys before the program is killed
+          - disabled: Just pass-through mouse events. I personally use this for disabling debounce time
           
           [default: hold]
 
